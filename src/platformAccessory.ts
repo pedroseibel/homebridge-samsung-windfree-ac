@@ -180,7 +180,7 @@ export class AirConditionerPlatformAccessory {
       this.accessory.getService('WindFree') ||
       this.accessory.addService(this.platform.Service.Switch, 'WindFree', `windfree-${accessory.context.device.deviceId}`);
 
-      this.windFreeSwitchService.setCharacteristic(this.platform.Characteristic.Name, 'WindFree');
+      this.nameService(this.windFreeSwitchService, 'WindFree');
 
       this.windFreeSwitchService.getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.handleWindFreeSwitchGet.bind(this))
@@ -200,7 +200,7 @@ export class AirConditionerPlatformAccessory {
       this.accessory.getService('Display') ||
       this.accessory.addService(this.platform.Service.Switch, 'Display', `display-${accessory.context.device.deviceId}`);
 
-      this.displaySwitchService.setCharacteristic(this.platform.Characteristic.Name, 'Display');
+      this.nameService(this.displaySwitchService, 'Display');
 
       this.displaySwitchService.getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.handleDisplaySwitchGet.bind(this))
@@ -222,7 +222,7 @@ export class AirConditionerPlatformAccessory {
       this.accessory.getService('Humidity') ||
       this.accessory.addService(this.platform.Service.HumiditySensor, 'Humidity', `humidity-${accessory.context.device.deviceId}`);
 
-      this.humiditySensorService.setCharacteristic(this.platform.Characteristic.Name, 'Humidity');
+      this.nameService(this.humiditySensorService, 'Humidity');
 
       this.humiditySensorService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
         .onGet(this.handleCurrentRelativeHumidityGet.bind(this));
@@ -241,7 +241,7 @@ export class AirConditionerPlatformAccessory {
       this.accessory.getService('Fan') ||
       this.accessory.addService(this.platform.Service.Fanv2, 'Fan', `fan-${accessory.context.device.deviceId}`);
 
-      this.fanService.setCharacteristic(this.platform.Characteristic.Name, 'Fan');
+      this.nameService(this.fanService, 'Fan');
 
       this.fanService.getCharacteristic(this.platform.Characteristic.Active)
         .onGet(this.handleFanActiveGet.bind(this))
@@ -302,7 +302,7 @@ export class AirConditionerPlatformAccessory {
       this.accessory.getService('Auto Clean') ||
       this.accessory.addService(this.platform.Service.Switch, 'Auto Clean', `autoclean-${accessory.context.device.deviceId}`);
 
-      this.autoCleanService.setCharacteristic(this.platform.Characteristic.Name, 'Auto Clean');
+      this.nameService(this.autoCleanService, 'Auto Clean');
 
       this.autoCleanService.getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.handleAutoCleanGet.bind(this))
@@ -319,7 +319,7 @@ export class AirConditionerPlatformAccessory {
       this.accessory.getService('Dry') ||
       this.accessory.addService(this.platform.Service.Switch, 'Dry', `dry-${accessory.context.device.deviceId}`);
 
-      this.dryModeSwitchService.setCharacteristic(this.platform.Characteristic.Name, 'Dry');
+      this.nameService(this.dryModeSwitchService, 'Dry');
 
       this.dryModeSwitchService.getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.handleDryModeSwitchGet.bind(this))
@@ -393,6 +393,21 @@ export class AirConditionerPlatformAccessory {
     }
   }
 
+  /**
+   * Since iOS 16 the Home app ignores Name on secondary services and shows
+   * ConfiguredName instead, falling back to the accessory name, so every switch
+   * reads as the AC itself. Only set when absent, so a rename made in the Home
+   * app survives restarts.
+   */
+  private nameService(service: Service, name: string): void {
+    service.setCharacteristic(this.platform.Characteristic.Name, name);
+
+    if (!service.testCharacteristic(this.platform.Characteristic.ConfiguredName)) {
+      service.addOptionalCharacteristic(this.platform.Characteristic.ConfiguredName);
+      service.setCharacteristic(this.platform.Characteristic.ConfiguredName, name);
+    }
+  }
+
   private removeCharacteristic(service: Service, characteristic: WithUUID<new () => Characteristic>): void {
     // Looked up by UUID rather than with getCharacteristic(), which would add
     // the optional characteristic back if it isn't there.
@@ -407,7 +422,7 @@ export class AirConditionerPlatformAccessory {
       this.accessory.getService(name) ||
       this.accessory.addService(this.platform.Service.Switch, name, subtype);
 
-    service.setCharacteristic(this.platform.Characteristic.Name, name);
+    this.nameService(service, name);
 
     service.getCharacteristic(this.platform.Characteristic.On)
       .onGet(async () => {
